@@ -45,11 +45,8 @@ def split_dataset(data, n_out):
 def evaluate_forecasts(actual, predicted):
 	scores = list()
 	# calculate an RMSE score for each day
-	print("actual.shape[1]: ", actual.shape[1])
 	for i in range(actual.shape[1]):
 		# calculate mse
-		
-		print("!! ", i)
 		mse = mean_squared_error(actual[:, i], predicted[:, i])
 		# calculate rmse
 		rmse = sqrt(mse)
@@ -92,15 +89,15 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 100
+	verbose, epochs, batch_size = 1, 2, 100
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
 	# define model
 	model = Sequential()
-	model.add(LSTM(100, activation='relu', input_shape=(n_timesteps, n_features)))
+	model.add(LSTM(200, activation='relu', input_shape=(n_timesteps, n_features)))
 	model.add(RepeatVector(n_outputs))
-	model.add(LSTM(50, activation='relu', return_sequences=True))
+	model.add(LSTM(200, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(100, activation='relu')))
 	model.add(TimeDistributed(Dense(1)))
 	model.compile(loss='mse', optimizer='adam')
@@ -114,9 +111,9 @@ def forecast(model, history, n_input):
 	data = array(history)
 	data = data.reshape((data.shape[0]*data.shape[1], data.shape[2]))
 	# retrieve last observations for input data
-	input_x = data[-n_input:, :]
-	# reshape into [1, n_input, n]
-	input_x = input_x.reshape((1, input_x.shape[0], input_x.shape[1]))
+	input_x = data[-n_input:, 0]
+	# reshape into [1, n_input, 1]
+	input_x = input_x.reshape((1, len(input_x), 1))
 	# forecast the next week
 	yhat = model.predict(input_x, verbose=0)
 	# we only want the vector forecast
