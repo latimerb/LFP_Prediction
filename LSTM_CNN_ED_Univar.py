@@ -10,11 +10,9 @@ from pandas import read_csv
 from sklearn.metrics import mean_squared_error
 from matplotlib import pyplot
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import LSTM
-from keras.layers import RepeatVector
-from keras.layers import TimeDistributed
+from keras.layers import Dense, Flatten, LSTM, RepeatVector, TimeDistributed
+from keras.layers.convolutional import Conv1D
+from keras.layers.convolutional import MaxPooling1D
 import pdb
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -95,7 +93,10 @@ def build_model(train, n_input, n_out):
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
 	# define model
 	model = Sequential()
-	model.add(LSTM(200, activation='relu', input_shape=(n_timesteps, n_features)))
+	model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(n_timesteps,n_features)))
+	model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
+	model.add(MaxPooling1D(pool_size=2))
+	model.add(Flatten())
 	model.add(RepeatVector(n_outputs))
 	model.add(LSTM(200, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(100, activation='relu')))
@@ -145,6 +146,7 @@ def evaluate_model(train, test, n_input, n_out):
 # load the new file
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
+print('LSTM+CNN Encoder-Decoder')
 
 dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_sinewave_noise.csv')
 dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n_out
@@ -155,7 +157,7 @@ dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n
 
 n_channels = dataset.shape[1]
 
-n_input = 60 #num_lookback
+n_input = 100 #num_lookback
 n_out = 10 #num_predict
 
 
@@ -235,7 +237,7 @@ for i in np.arange(6):
 	ax.set_xticklabels([])
 	ax.set_yticklabels([])
 plt.tight_layout()
-plt.savefig('LSTM_ED_univar_EX.png')
+plt.savefig('LSTM_CNN_ED_univar_EX.png')
 
 summarize_scores('lstm', score, scores)
 
@@ -261,7 +263,7 @@ plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
 plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
 plt.xlim(0,11)
 
-plt.savefig('LSTM_ED_univar_RMSE.png')
+plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

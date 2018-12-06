@@ -10,11 +10,9 @@ from pandas import read_csv
 from sklearn.metrics import mean_squared_error
 from matplotlib import pyplot
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import LSTM
-from keras.layers import RepeatVector
-from keras.layers import TimeDistributed
+from keras.layers import Dense, Flatten, LSTM, RepeatVector, TimeDistributed
+from keras.layers.convolutional import Conv1D
+from keras.layers.convolutional import MaxPooling1D
 import pdb
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -66,7 +64,7 @@ def summarize_scores(name, score, scores):
 	print('%s: [%.3f] %s' % (name, score, s_scores))
 
 # convert history into inputs and outputs
-def to_supervised(train, n_input, n_out):
+def to_supervised(train, n_input, n_out=7):
 	# flatten data
 	data = train.reshape((train.shape[0]*train.shape[1], train.shape[2]))
 	X, y = list(), list()
@@ -78,24 +76,29 @@ def to_supervised(train, n_input, n_out):
 		out_end = in_end + n_out
 		# ensure we have enough data for this instance
 		if out_end < len(data):
-			X.append(data[in_start:in_end, :])
+			x_input = data[in_start:in_end, 0]
+			x_input = x_input.reshape((len(x_input), 1))
+			X.append(x_input)
 			y.append(data[in_end:out_end, 0])
 		# move along one time step
 		in_start += 1
 	return array(X), array(y)
 
 # train the model
-def build_model(train, n_input, n_out):
+def build_model(train, n_steps, n_length, n_input):
 	# prepare data
-	train_x, train_y = to_supervised(train, n_input, n_out)
+	train_x, train_y = to_supervised(train, n_input)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 100
+	verbose, epochs, batch_size = 0, 20, 16
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
+	# reshape into subsequences [samples, time steps, rows, cols, channels]
+	train_x = train_x.reshape((train_x.shape[0], n_steps, 1, n_length, n_features))
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
 	# define model
 	model = Sequential()
-	model.add(LSTM(200, activation='relu', input_shape=(n_timesteps, n_features)))
+	model.add(ConvLSTM2D(filters=64, kernel_size=(1,3), activation='relu', input_shape=(n_steps, 1, n_length, n_features)))
+	model.add(Flatten())
 	model.add(RepeatVector(n_outputs))
 	model.add(LSTM(200, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(100, activation='relu')))
@@ -106,14 +109,14 @@ def build_model(train, n_input, n_out):
 	return model
 
 # make a forecast
-def forecast(model, history, n_input):
+def forecast(model, history, n_steps, n_length, n_input):
 	# flatten data
 	data = array(history)
 	data = data.reshape((data.shape[0]*data.shape[1], data.shape[2]))
 	# retrieve last observations for input data
 	input_x = data[-n_input:, 0]
-	# reshape into [1, n_input, 1]
-	input_x = input_x.reshape((1, len(input_x), 1))
+	# reshape into [samples, time steps, rows, cols, channels]
+	input_x = input_x.reshape((1, n_steps, 1, n_length, 1))
 	# forecast the next week
 	yhat = model.predict(input_x, verbose=0)
 	# we only want the vector forecast
@@ -121,16 +124,16 @@ def forecast(model, history, n_input):
 	return yhat
 
 # evaluate a single model
-def evaluate_model(train, test, n_input, n_out):
+def evaluate_model(train, test, n_steps, n_length, n_input):
 	# fit model
-	model = build_model(train, n_input, n_out)
+	model = build_model(train, n_steps, n_length, n_input)
 	# history is a list of weekly data
 	history = [x for x in train]
 	# walk-forward validation over each week
 	predictions = list()
 	for i in range(len(test)):
 		# predict the week
-		yhat_sequence = forecast(model, history, n_input)
+		yhat_sequence = forecast(model, history, n_steps, n_length, n_input)
 		# store the predictions
 		predictions.append(yhat_sequence)
 		# get real observation and add to history for predicting the next week
@@ -145,6 +148,7 @@ def evaluate_model(train, test, n_input, n_out):
 # load the new file
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
+print('ConvLSTM Encoder-Decoder')
 
 dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_sinewave_noise.csv')
 dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n_out
@@ -152,10 +156,10 @@ dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
 
-
+n_steps, n_length = 2, 10
 n_channels = dataset.shape[1]
 
-n_input = 60 #num_lookback
+n_input = 100 #num_lookback
 n_out = 10 #num_predict
 
 
@@ -202,7 +206,7 @@ test_us = test_us.reshape(test_us.shape[0],test_us.shape[1],test_us.shape[2])
 
 # evaluate model and get scores
 
-score, scores, preds = evaluate_model(train_scl, test_scl, n_input, n_out)
+score, scores, preds = evaluate_model(train, test, n_steps, n_length, n_input)
 
 
 # unscale the preds
@@ -235,7 +239,7 @@ for i in np.arange(6):
 	ax.set_xticklabels([])
 	ax.set_yticklabels([])
 plt.tight_layout()
-plt.savefig('LSTM_ED_univar_EX.png')
+plt.savefig('LSTM_CNN_ED_univar_EX.png')
 
 summarize_scores('lstm', score, scores)
 
@@ -261,7 +265,7 @@ plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
 plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
 plt.xlim(0,11)
 
-plt.savefig('LSTM_ED_univar_RMSE.png')
+plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

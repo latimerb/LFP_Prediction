@@ -94,7 +94,7 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 100
+	verbose, epochs, batch_size = 1, 10, 50
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# define model
 	model = Sequential()
@@ -146,9 +146,11 @@ def evaluate_model(train, test, n_input, n_out):
 # load the new file
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
+print("Running LSTM_Univar.py")
 
-dataset = read_csv('./data/ex_sinewave_noise.csv')
-dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n_out
+
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_LFP_64chan.csv')
+dataset = dataset.values[0:50000,0:1] # length of dataset must be divisible by n_out
 
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
@@ -156,7 +158,7 @@ dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n
 
 n_channels = dataset.shape[1]
 
-n_input = 60 #num_lookback
+n_input = 100 #num_lookback
 n_out = 10 #num_predict
 
 
@@ -225,7 +227,7 @@ for i in np.arange(1,test.shape[0]):
 	y_pers_test[i,:] = np.transpose(np.tile(test_us[i-1,-1,0], (n_out,1)))
 
 
-plt.figure()
+#plt.figure()
 for i in np.arange(6):
 	ax = plt.subplot(2,3,i+1)
 	sample = np.random.randint(0,test_us.shape[0])
@@ -236,6 +238,7 @@ for i in np.arange(6):
 	ax.set_xticklabels([])
 	ax.set_yticklabels([])
 plt.tight_layout()
+plt.savefig('LSTM_univar_EX.png')
 
 summarize_scores('lstm', score, scores)
 
@@ -245,10 +248,12 @@ rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
 
 print("LSTM RMSE: ", rmse_lstm)
 
+np.savetxt('./modeloutputdata/LSTM_Univar_rmse.csv',rmse_lstm)
+
 print("PERS RMSE: ",rmse_pers)
 
 
-fig2 = plt.figure()
+#fig2 = plt.figure()
 plt.subplot(2,1,1)
 plt.bar(np.arange(0,n_out)-0.2,rmse_pers*0.1,0.3,label='persistence')
 plt.bar(np.arange(0,n_out)+0.2,rmse_lstm*0.1,0.3,label='LSTM')
@@ -260,7 +265,7 @@ plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
 plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
 plt.xlim(0,11)
 
-plt.show()
+plt.savefig('LSTM_univar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

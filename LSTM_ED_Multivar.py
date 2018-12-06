@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow import set_random_seed
 
-set_random_seed(27365)
+#set_random_seed(27365)
 
 # split a univariate dataset into train/test sets
 def split_dataset(data, n_out):
@@ -45,11 +45,8 @@ def split_dataset(data, n_out):
 def evaluate_forecasts(actual, predicted):
 	scores = list()
 	# calculate an RMSE score for each day
-	print("actual.shape[1]: ", actual.shape[1])
 	for i in range(actual.shape[1]):
 		# calculate mse
-		
-		print("!! ", i)
 		mse = mean_squared_error(actual[:, i], predicted[:, i])
 		# calculate rmse
 		rmse = sqrt(mse)
@@ -92,7 +89,7 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 20, 100
+	verbose, epochs, batch_size = 1, 3, 50
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
@@ -149,8 +146,8 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
 
-dataset = read_csv('./data/ex_LFP_64chan.csv')
-dataset = dataset.values[0:59000,0:6] # length of dataset must be divisible by n_out
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_LFP_64chan.csv')
+dataset = dataset.values[0:50000,0:16] # length of dataset must be divisible by n_out
 
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
@@ -158,7 +155,7 @@ dataset = dataset.values[0:59000,0:6] # length of dataset must be divisible by n
 
 n_channels = dataset.shape[1]
 
-n_input = 30 #num_lookback
+n_input = 50 #num_lookback
 n_out = 10 #num_predict
 
 
@@ -175,22 +172,17 @@ test_us = test
 sclr_train = []
 sclr_test = []
 
+
+
 for i in np.arange(train.shape[0]):
 	scl1 = MinMaxScaler(feature_range=(-1,1))
 	scaled1 = scl1.fit_transform(train[i,:,0:1])
 	train_scl[i,:,0:1] = scaled1
-	scl2 = MinMaxScaler(feature_range=(-1,1))
-	scaled2 = scl2.fit_transform(train[i,:,1:2])
-	train_scl[i,:,1:2] = scaled2
-	scl3 = MinMaxScaler(feature_range=(-1,1))
-	scaled3 = scl3.fit_transform(train[i,:,2:3])
-	train_scl[i,:,2:3] = scaled3
-	scl4 = MinMaxScaler(feature_range=(-1,1))
-	scaled4 = scl4.fit_transform(train[i,:,3:4])
-	train_scl[i,:,3:4] = scaled4
-	scl5 = MinMaxScaler(feature_range=(-1,1))
-	scaled5 = scl5.fit_transform(train[i,:,4:5])
-	train_scl[i,:,4:5] = scaled5
+	for j in np.arange(train.shape[2]-1):
+		scl2 = MinMaxScaler(feature_range=(-1,1))
+		scaled2 = scl2.fit_transform(train[i,:,1+j:2+j])
+		train_scl[i,:,1+j:2+j] = scaled2
+	
 	# only append scaler for first variable
 	sclr_train.append(scl1)
 
@@ -198,18 +190,11 @@ for i in np.arange(test.shape[0]):
 	scl1 = MinMaxScaler(feature_range=(-1,1))
 	scaled1 = scl1.fit_transform(test[i,:,0:1])
 	test_scl[i,:,0:1] = scaled1
-	scl2 = MinMaxScaler(feature_range=(-1,1))
-	scaled2 = scl2.fit_transform(test[i,:,1:2])
-	test_scl[i,:,1:2] = scaled2
-	scl3 = MinMaxScaler(feature_range=(-1,1))
-	scaled3 = scl3.fit_transform(test[i,:,2:3])
-	test_scl[i,:,2:3] = scaled3
-	scl4 = MinMaxScaler(feature_range=(-1,1))
-	scaled4 = scl4.fit_transform(test[i,:,3:4])
-	test_scl[i,:,3:4] = scaled4
-	scl5 = MinMaxScaler(feature_range=(-1,1))
-	scaled5 = scl5.fit_transform(test[i,:,4:5])
-	test_scl[i,:,4:5] = scaled5
+	for j in np.arange(train.shape[2]-1):
+		scl2 = MinMaxScaler(feature_range=(-1,1))
+		scaled2 = scl2.fit_transform(train[i,:,1+j:2+j])
+		train_scl[i,:,1+j:2+j] = scaled2
+		
 	# only append scaler for first variable
 	sclr_test.append(scl1)	
 
@@ -258,6 +243,7 @@ for i in np.arange(6):
 	ax.set_xticklabels([])
 	ax.set_yticklabels([])
 plt.tight_layout()
+plt.savefig('LSTM_ED_Multivar_EX.png')
 
 summarize_scores('lstm', score, scores)
 
@@ -266,6 +252,8 @@ rmse_lstm = np.sqrt(np.mean((preds_us - test_us[:,:,0])**2,axis=0))
 rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
 
 print("LSTM RMSE: ", rmse_lstm)
+
+np.savetxt('./modeloutputdata/LSTM_ED_Multivar_rmse.csv',rmse_lstm)
 
 print("PERS RMSE: ",rmse_pers)
 
@@ -282,7 +270,7 @@ plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
 plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
 plt.xlim(0,11)
 
-plt.show()
+plt.savefig('LSTM_ED_Multivar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
