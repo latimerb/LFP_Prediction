@@ -95,9 +95,9 @@ def build_model(train, n_input, n_out):
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
 	# define model
 	model = Sequential()
-	model.add(LSTM(200, activation='relu', input_shape=(n_timesteps, n_features)))
+	model.add(LSTM(300, activation='relu', input_shape=(n_timesteps, n_features)))
 	model.add(RepeatVector(n_outputs))
-	model.add(LSTM(200, activation='relu', return_sequences=True))
+	model.add(LSTM(300, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(100, activation='relu')))
 	model.add(TimeDistributed(Dense(1)))
 	model.compile(loss='mse', optimizer='adam')
@@ -145,9 +145,10 @@ def evaluate_model(train, test, n_input, n_out):
 # load the new file
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
+print('LSTM Encoder-Decoder Multivariate')
 
-dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_LFP_64chan.csv')
-dataset = dataset.values[0:50000,0:16] # length of dataset must be divisible by n_out
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+dataset = dataset.values[0:119000,0:2] # length of dataset must be divisible by n_out
 
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
@@ -155,7 +156,7 @@ dataset = dataset.values[0:50000,0:16] # length of dataset must be divisible by 
 
 n_channels = dataset.shape[1]
 
-n_input = 50 #num_lookback
+n_input = 80 #num_lookback
 n_out = 10 #num_predict
 
 

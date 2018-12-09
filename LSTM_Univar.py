@@ -94,7 +94,7 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 50
+	verbose, epochs, batch_size = 1, 10, 100
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# define model
 	model = Sequential()
@@ -148,9 +148,9 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print("Running LSTM_Univar.py")
 
-
-dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_LFP_64chan.csv')
-dataset = dataset.values[0:50000,0:1] # length of dataset must be divisible by n_out
+channel = 1
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+dataset = dataset.values[0:119000,channel-1:channel]*0.195  # convert to microvolts
 
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
@@ -248,7 +248,6 @@ rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
 
 print("LSTM RMSE: ", rmse_lstm)
 
-np.savetxt('./modeloutputdata/LSTM_Univar_rmse.csv',rmse_lstm)
 
 print("PERS RMSE: ",rmse_pers)
 
@@ -266,6 +265,8 @@ plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
 plt.xlim(0,11)
 
 plt.savefig('LSTM_univar_RMSE.png')
+
+np.savetxt('./modeloutputdata/LSTM_Univar_Channel_{}.csv'.format(channel),rmse_lstm)
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

@@ -4,7 +4,7 @@
 #SBATCH --output=LSTM%j.out
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
-#SBATCH --time 0-01:00
+#SBATCH --time 0-02:00
 
 #SBATCH --partition Gpu
 #SBATCH --gres gpu:1
@@ -18,7 +18,7 @@ module load cudnn/cudnn-7.1.4-cuda-9.0.176
 
 module list
 
-python LSTM_ED_Multivar.py
+python LSTM_CNN_ED_Univar.py
 
 echo "Done at: $(date)"
 
