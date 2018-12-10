@@ -87,7 +87,7 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 100
+	verbose, epochs, batch_size = 1, 10, 150
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
@@ -235,18 +235,18 @@ for k in np.arange(num_sims):
 		y_pers_test[i,:] = np.transpose(np.tile(test_us[i-1,-1,0], (n_out,1)))
 
 
-	plt.figure()
-	for i in np.arange(6):
-		ax = plt.subplot(2,3,i+1)
-		sample = np.random.randint(0,test_us.shape[0])
-		plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
-		plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
-		#plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
-		plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
-		ax.set_xticklabels([])
-		ax.set_yticklabels([])
-	plt.tight_layout()
-	plt.savefig('LSTM_CNN_ED_univar_EX.png')
+	# plt.figure()
+	# for i in np.arange(6):
+		# ax = plt.subplot(2,3,i+1)
+		# sample = np.random.randint(0,test_us.shape[0])
+		# plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
+		# plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
+		# #plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
+		# plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
+		# ax.set_xticklabels([])
+		# ax.set_yticklabels([])
+	# plt.tight_layout()
+	# plt.savefig('LSTM_CNN_ED_univar_EX.png')
 
 	summarize_scores('lstm', score, scores)
 
@@ -274,7 +274,7 @@ for k in np.arange(num_sims):
 
 # plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 
-np.savetxt('./modeloutputdata/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm)
+np.savetxt('./modeloutputdata/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
