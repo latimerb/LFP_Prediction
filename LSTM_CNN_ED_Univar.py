@@ -148,12 +148,12 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM+CNN Encoder-Decoder')
 
-channel = 8
+channel = 4
 num_sims = 10
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
 
-	set_random_seed(27365+k)
+	#set_random_seed(27365+k)
 	print("simulation {} of {}".format(k+1,num_sims))
 	
 	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
@@ -274,7 +274,8 @@ for k in np.arange(num_sims):
 
 # plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 
-np.savetxt('./modeloutputdata/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
