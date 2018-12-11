@@ -148,7 +148,7 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM Univar')
 
-channel = 4
+channel = 8
 num_sims = 5
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
