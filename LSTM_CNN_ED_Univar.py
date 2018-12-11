@@ -274,8 +274,8 @@ for k in np.arange(num_sims):
 
 # plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 
-np.savetxt('./modeloutputdata/LSTM_CNN/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
-np.savetxt('./modeloutputdata/LSTM_CNN/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/pers/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
