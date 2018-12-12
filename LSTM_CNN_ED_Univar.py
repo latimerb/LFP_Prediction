@@ -33,10 +33,13 @@ def split_dataset(data, n_out):
 	
 	train, test = data[0:-n_train], data[-n_train:]
 	
-	print("train.shape: ", train.shape)
 	# restructure into windows of weekly data
 	train = array(split(train, len(train)/n_out))
 	test = array(split(test, len(test)/n_out))
+	
+	print("train.shape: ", train.shape)
+	print("test.shape: ", test.shape)
+	
 	return train, test
 
 # evaluate one or more weekly forecasts against expected values
@@ -148,8 +151,8 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM+CNN Encoder-Decoder')
 
-channel = 16
-num_sims = 3
+channel = 1
+num_sims = 1
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
 
@@ -276,6 +279,9 @@ for k in np.arange(num_sims):
 
 np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
 np.savetxt('./modeloutputdata/LSTM_CNN/pers/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
+
+np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_preds.csv'.format(channel),preds_us,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_test.csv'.format(channel),test_us[:,:,0],delimiter=',')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

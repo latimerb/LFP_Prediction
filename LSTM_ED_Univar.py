@@ -146,7 +146,7 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
 
-channel = 16
+channel = 1
 num_sims = 3
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
@@ -256,8 +256,8 @@ for k in np.arange(num_sims):
 
 	print("PERS RMSE: ",rmse_pers)
 
-np.savetxt('./modeloutputdata/LSTM_ED_Univar/model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
-np.savetxt('./modeloutputdata/LSTM_ED_Univar/pers/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_ED_Univar/model/LSTM_ED_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_ED_Univar/pers/LSTM_ED_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
 
 # fig2 = plt.figure()
 # plt.subplot(2,1,1)
