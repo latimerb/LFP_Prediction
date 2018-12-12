@@ -27,6 +27,7 @@ def split_dataset(data, n_out):
 	return train, test
 
 N = 6
+channel = 1
 #series = read_csv('./modeloutputdata/ex_LFP.csv',header=None)
 #X = series.values[0:11000]
 dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')

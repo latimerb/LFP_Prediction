@@ -148,8 +148,8 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM+CNN Encoder-Decoder')
 
-channel = 3
-num_sims = 10
+channel = 16
+num_sims = 3
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
 

@@ -89,7 +89,7 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 10, 100
+	verbose, epochs, batch_size = 1, 10, 150
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
@@ -146,122 +146,133 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = read_csv('household_power_consumption_days.csv', header=0, infer_datetime_format=True, parse_dates=['datetime'], index_col=['datetime'])
 #dataset = dataset.values
 
-dataset = read_csv('../LFP_Prediction_WITHDATA/data/ex_sinewave_noise.csv')
-dataset = dataset.values[0:20000,0:1] # length of dataset must be divisible by n_out
+channel = 16
+num_sims = 3
+rmse_lstm = np.zeros((10,num_sims))
+for k in np.arange(num_sims):
 
-#scaler = MinMaxScaler(feature_range=(-2,2))
-#scaled = scaler.fit_transform(short_seg)
-
-
-n_channels = dataset.shape[1]
-
-n_input = 60 #num_lookback
-n_out = 10 #num_predict
-
-
-# split into train and test
-train, test = split_dataset(dataset,n_out)
-
-
-
-# make variables for scaled data
-train_scl = np.zeros((train.shape[0],train.shape[1],train.shape[2]))
-test_scl = np.zeros((test.shape[0],test.shape[1],test.shape[2]))
-
-train_us = train
-test_us = test
-
-sclr_train = []
-sclr_test = []
-
-for i in np.arange(train.shape[0]):
-	scl1 = MinMaxScaler(feature_range=(-1,1))
-	scaled1 = scl1.fit_transform(train[i,:,0:1])
-	train_scl[i,:,0:1] = scaled1
+	#set_random_seed(27365+k)
+	print("simulation {} of {}".format(k+1,num_sims))
 	
-	# only append scaler for first variable
-	sclr_train.append(scl1)
+	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+	# length of dataset must be divisible by n_out
+	dataset = dataset.values[0:119000,channel-1:channel]*0.195  # convert to microvolts
 
-for i in np.arange(test.shape[0]):
-	scl1 = MinMaxScaler(feature_range=(-1,1))
-	scaled1 = scl1.fit_transform(test[i,:,0:1])
-	test_scl[i,:,0:1] = scaled1
+	#scaler = MinMaxScaler(feature_range=(-2,2))
+	#scaled = scaler.fit_transform(short_seg)
+
+
+	n_channels = dataset.shape[1]
+
+	n_input = 100 #num_lookback
+	n_out = 10 #num_predict
+
+
+	# split into train and test
+	train, test = split_dataset(dataset,n_out)
+
+
+
+	# make variables for scaled data
+	train_scl = np.zeros((train.shape[0],train.shape[1],train.shape[2]))
+	test_scl = np.zeros((test.shape[0],test.shape[1],test.shape[2]))
+
+	train_us = train
+	test_us = test
+
+	sclr_train = []
+	sclr_test = []
+
+	for i in np.arange(train.shape[0]):
+		scl1 = MinMaxScaler(feature_range=(-1,1))
+		scaled1 = scl1.fit_transform(train[i,:,0:1])
+		train_scl[i,:,0:1] = scaled1
+		
+		# only append scaler for first variable
+		sclr_train.append(scl1)
+
+	for i in np.arange(test.shape[0]):
+		scl1 = MinMaxScaler(feature_range=(-1,1))
+		scaled1 = scl1.fit_transform(test[i,:,0:1])
+		test_scl[i,:,0:1] = scaled1
+		
+		# only append scaler for first variable
+		sclr_test.append(scl1)	
+
+
+
+	# train is now N_train (time chunks) x 7 (time samples) x 8 (channels)
+
+	train_scl = train_scl.reshape(train_scl.shape[0],train_scl.shape[1],train_scl.shape[2])
+	test_scl = test_scl.reshape(test_scl.shape[0],test_scl.shape[1],test_scl.shape[2])
+
+	train_us = train_us.reshape(train_us.shape[0],train_us.shape[1],train_us.shape[2])
+	test_us = test_us.reshape(test_us.shape[0],test_us.shape[1],test_us.shape[2])
+
+	# evaluate model and get scores
+
+	score, scores, preds = evaluate_model(train_scl, test_scl, n_input, n_out)
+
+
+	# unscale the preds
+	preds = preds.reshape(preds.shape[0],preds.shape[1])
+	preds_us = np.zeros((preds.shape[0],preds.shape[1]))
+	for i in np.arange(preds.shape[0]):
+		seg = preds[i,:]
+		seg = seg.reshape(-1,1)
+		inv_scale = sclr_test[i].inverse_transform(seg)
+		preds_us[i,:] = inv_scale[:,0]
+
+
+	# PERSISTENCE FORECAST
+	y_pers_test = np.zeros((test_us.shape[0],test_us.shape[1]))
+
+	# first test is from the last sample of train
+	y_pers_test[0,:] = np.transpose(np.tile(train_us[-1,-1,0], (n_out,1)))
+	for i in np.arange(1,test.shape[0]):
+		y_pers_test[i,:] = np.transpose(np.tile(test_us[i-1,-1,0], (n_out,1)))
+
+
+	# plt.figure()
+	# for i in np.arange(6):
+		# ax = plt.subplot(2,3,i+1)
+		# sample = np.random.randint(0,test_us.shape[0])
+		# plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
+		# plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
+		# #plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
+		# plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
+		# ax.set_xticklabels([])
+		# ax.set_yticklabels([])
+	# plt.tight_layout()
+	# plt.savefig('LSTM_CNN_ED_univar_EX.png')
+
+	summarize_scores('lstm', score, scores)
+
+	rmse_lstm[:,k] = np.sqrt(np.mean((preds_us - test_us[:,:,0])**2,axis=0))
+
+	rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
+
+	print("LSTM RMSE: ", rmse_lstm)
+
+	print("PERS RMSE: ",rmse_pers)
+
+np.savetxt('./modeloutputdata/LSTM_ED_Univar/model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_ED_Univar/pers/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
+
+# fig2 = plt.figure()
+# plt.subplot(2,1,1)
+# plt.bar(np.arange(0,n_out)-0.2,rmse_pers*0.1,0.3,label='persistence')
+# plt.bar(np.arange(0,n_out)+0.2,rmse_lstm*0.1,0.3,label='LSTM')
+# plt.ylabel('error in uV')
+# plt.legend()
+
 	
-	# only append scaler for first variable
-	sclr_test.append(scl1)	
+# plt.subplot(2,1,2)
+# plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
+# plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
+# plt.xlim(0,11)
 
-
-
-# train is now N_train (time chunks) x 7 (time samples) x 8 (channels)
-
-train_scl = train_scl.reshape(train_scl.shape[0],train_scl.shape[1],train_scl.shape[2])
-test_scl = test_scl.reshape(test_scl.shape[0],test_scl.shape[1],test_scl.shape[2])
-
-train_us = train_us.reshape(train_us.shape[0],train_us.shape[1],train_us.shape[2])
-test_us = test_us.reshape(test_us.shape[0],test_us.shape[1],test_us.shape[2])
-
-# evaluate model and get scores
-
-score, scores, preds = evaluate_model(train_scl, test_scl, n_input, n_out)
-
-
-# unscale the preds
-preds = preds.reshape(preds.shape[0],preds.shape[1])
-preds_us = np.zeros((preds.shape[0],preds.shape[1]))
-for i in np.arange(preds.shape[0]):
-	seg = preds[i,:]
-	seg = seg.reshape(-1,1)
-	inv_scale = sclr_test[i].inverse_transform(seg)
-	preds_us[i,:] = inv_scale[:,0]
-
-
-# PERSISTENCE FORECAST
-y_pers_test = np.zeros((test_us.shape[0],test_us.shape[1]))
-
-# first test is from the last sample of train
-y_pers_test[0,:] = np.transpose(np.tile(train_us[-1,-1,0], (n_out,1)))
-for i in np.arange(1,test.shape[0]):
-	y_pers_test[i,:] = np.transpose(np.tile(test_us[i-1,-1,0], (n_out,1)))
-
-
-plt.figure()
-for i in np.arange(6):
-	ax = plt.subplot(2,3,i+1)
-	sample = np.random.randint(0,test_us.shape[0])
-	plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
-	plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
-	#plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
-	plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
-	ax.set_xticklabels([])
-	ax.set_yticklabels([])
-plt.tight_layout()
-plt.savefig('LSTM_ED_univar_EX.png')
-
-summarize_scores('lstm', score, scores)
-
-rmse_lstm = np.sqrt(np.mean((preds_us - test_us[:,:,0])**2,axis=0))
-
-rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
-
-print("LSTM RMSE: ", rmse_lstm)
-
-print("PERS RMSE: ",rmse_pers)
-
-
-fig2 = plt.figure()
-plt.subplot(2,1,1)
-plt.bar(np.arange(0,n_out)-0.2,rmse_pers*0.1,0.3,label='persistence')
-plt.bar(np.arange(0,n_out)+0.2,rmse_lstm*0.1,0.3,label='LSTM')
-plt.ylabel('error in uV')
-plt.legend()
-
-	
-plt.subplot(2,1,2)
-plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
-plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
-plt.xlim(0,11)
-
-plt.savefig('LSTM_ED_univar_RMSE.png')
+# plt.savefig('LSTM_ED_univar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 

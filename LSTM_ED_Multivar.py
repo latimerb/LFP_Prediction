@@ -15,6 +15,7 @@ from keras.layers import Flatten
 from keras.layers import LSTM
 from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
+from keras.optimizers import Adam
 import pdb
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -89,17 +90,18 @@ def build_model(train, n_input, n_out):
 	# prepare data
 	train_x, train_y = to_supervised(train, n_input, n_out)
 	# define parameters
-	verbose, epochs, batch_size = 1, 3, 50
+	verbose, epochs, batch_size = 1, 3, 150
 	n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], train_y.shape[1]
 	# reshape output into [samples, timesteps, features]
 	train_y = train_y.reshape((train_y.shape[0], train_y.shape[1], 1))
 	# define model
 	model = Sequential()
-	model.add(LSTM(300, activation='relu', input_shape=(n_timesteps, n_features)))
+	model.add(LSTM(200, activation='relu', input_shape=(n_timesteps, n_features)))
 	model.add(RepeatVector(n_outputs))
-	model.add(LSTM(300, activation='relu', return_sequences=True))
+	model.add(LSTM(200, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(100, activation='relu')))
 	model.add(TimeDistributed(Dense(1)))
+	#opt = Adam(lr=0.0001)
 	model.compile(loss='mse', optimizer='adam')
 	# fit network
 	model.fit(train_x, train_y, epochs=epochs, batch_size=batch_size, verbose=verbose)
@@ -147,16 +149,21 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM Encoder-Decoder Multivariate')
 
-dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
-dataset = dataset.values[0:119000,0:2] # length of dataset must be divisible by n_out
+channel = 1
 
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+dataset = dataset.values[0:119000,0:10]*0.195  # convert to microvolts # length of dataset must be divisible by n_out
+
+print("dataset size before delete:", dataset.shape)
+
+dataset = np.delete(dataset,[1,2,3,4,5,6,7,8],axis=1)
 #scaler = MinMaxScaler(feature_range=(-2,2))
 #scaled = scaler.fit_transform(short_seg)
-
+print("dataset size after delete:", dataset.shape)
 
 n_channels = dataset.shape[1]
 
-n_input = 80 #num_lookback
+n_input = 100 #num_lookback
 n_out = 10 #num_predict
 
 
@@ -233,18 +240,18 @@ for i in np.arange(1,test.shape[0]):
 	y_pers_test[i,:] = np.transpose(np.tile(test_us[i-1,-1,0], (n_out,1)))
 
 
-plt.figure()
-for i in np.arange(6):
-	ax = plt.subplot(2,3,i+1)
-	sample = np.random.randint(0,test_us.shape[0])
-	plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
-	plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
-	#plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
-	plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
-	ax.set_xticklabels([])
-	ax.set_yticklabels([])
-plt.tight_layout()
-plt.savefig('LSTM_ED_Multivar_EX.png')
+# plt.figure()
+# for i in np.arange(6):
+	# ax = plt.subplot(2,3,i+1)
+	# sample = np.random.randint(0,test_us.shape[0])
+	# plt.plot(np.arange(1,3*n_out+1),np.concatenate((test_us[sample-1,:,0],test_us[sample,:,0],test_us[sample+1,:,0])),color='#00FF00')
+	# plt.plot(np.arange(2*n_out+1,3*n_out+1),test_us[sample+1,:,0],color='#FF0000')
+	# #plt.plot(np.arange(n_out+1,2*n_out+1),y_pers_test[sample+1,:],color='orange')
+	# plt.plot(np.arange(2*n_out+1,3*n_out+1),preds_us[sample+1,:],color='orange')
+	# ax.set_xticklabels([])
+	# ax.set_yticklabels([])
+# plt.tight_layout()
+# plt.savefig('LSTM_ED_Multivar_EX.png')
 
 summarize_scores('lstm', score, scores)
 
@@ -254,24 +261,25 @@ rmse_pers = np.sqrt(np.mean((y_pers_test[:,:] - test_us[:,:,0])**2,axis=0))
 
 print("LSTM RMSE: ", rmse_lstm)
 
-np.savetxt('./modeloutputdata/LSTM_ED_Multivar_rmse.csv',rmse_lstm)
+np.savetxt('./modeloutputdata/LSTM_ED_Multivar/model/LSTM_ED_Multivar_Chan{}_RMSE.csv'.format(channel),rmse_lstm)
+np.savetxt('./modeloutputdata/LSTM_ED_Multivar/pers/LSTM_ED_Multivar_Chan{}_pers.csv'.format(channel),rmse_pers)
 
 print("PERS RMSE: ",rmse_pers)
 
 
-fig2 = plt.figure()
-plt.subplot(2,1,1)
-plt.bar(np.arange(0,n_out)-0.2,rmse_pers*0.1,0.3,label='persistence')
-plt.bar(np.arange(0,n_out)+0.2,rmse_lstm*0.1,0.3,label='LSTM')
-plt.ylabel('error in uV')
-plt.legend()
+# fig2 = plt.figure()
+# plt.subplot(2,1,1)
+# plt.bar(np.arange(0,n_out)-0.2,rmse_pers*0.1,0.3,label='persistence')
+# plt.bar(np.arange(0,n_out)+0.2,rmse_lstm*0.1,0.3,label='LSTM')
+# plt.ylabel('error in uV')
+# plt.legend()
 	
-plt.subplot(2,1,2)
-plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
-plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
-plt.xlim(0,11)
+# plt.subplot(2,1,2)
+# plt.bar(np.arange(1,n_out+1),100*rmse_lstm/rmse_pers)
+# plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
+# plt.xlim(0,11)
 
-plt.savefig('LSTM_ED_Multivar_RMSE.png')
+# plt.savefig('LSTM_ED_Multivar_RMSE.png')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
