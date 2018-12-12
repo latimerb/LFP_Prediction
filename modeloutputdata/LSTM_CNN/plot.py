@@ -3,10 +3,10 @@ import pdb
 import matplotlib.pyplot as plt
 import numpy as np
 
-RMSE = np.zeros((10,10,64))
+RMSE = np.zeros((10,3,64))
 
 for i in np.arange(12):
-	df = pd.read_csv('LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(i+1),header=None)
+	df = pd.read_csv('./model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(i+1),header=None)
 	RMSE[:,:,i] = df.values[:,:]
 
 	plt.plot(np.arange(1,11),np.mean(RMSE[:,:,i],1),label='chan {}'.format(i+1))
