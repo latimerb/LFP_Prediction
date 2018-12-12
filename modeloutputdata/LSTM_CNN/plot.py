@@ -5,7 +5,7 @@ import numpy as np
 
 RMSE = np.zeros((10,3,64))
 
-for i in np.arange(12):
+for i in np.arange(1):
 	df = pd.read_csv('./model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(i+1),header=None)
 	RMSE[:,:,i] = df.values[:,:]
 
