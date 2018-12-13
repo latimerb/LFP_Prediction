@@ -40,40 +40,40 @@ def butter_highpass(cutoff, fs, order=2):
 
 ################# LOAD THE DATA #########################
 
-num_lines = 28 # How many lines to load (artifact-free chunks)
-skip_rows = 0 # Skip some rows if you want
+# num_lines = 28 # How many lines to load (artifact-free chunks)
+# skip_rows = 0 # Skip some rows if you want
 
-dataset = np.empty((num_lines,3000000)) #initialize dataset matrix
-filt_dataset = np.empty((4,num_lines,3000000)) #initialize dataset matrix
+# dataset = np.empty((num_lines,3000000)) #initialize dataset matrix
+# filt_dataset = np.empty((4,num_lines,3000000)) #initialize dataset matrix
 
-f = open('./data/subject3_seg.csv', newline='')
-reader = csv.reader(f)
+# f = open('./data/subject3_seg.csv', newline='')
+# reader = csv.reader(f)
 
-for i in np.arange(0,skip_rows):
-    row = next(reader)
+# for i in np.arange(0,skip_rows):
+    # row = next(reader)
 
-for i in np.arange(0,num_lines):
-    row = next(reader)  # gets the first line
-    arr = np.array(list(map(float, row)))
-    dataset[i,0:len(arr)] = arr
+# for i in np.arange(0,num_lines):
+    # row = next(reader)  # gets the first line
+    # arr = np.array(list(map(float, row)))
+    # dataset[i,0:len(arr)] = arr
 
-# If you want to filter then filter	
-b_filt, a_filt = butter_bandpass(30,100,1000)
-b_filt1, a_filt1 = butter_lowpass(5,1000)
-b_filt2, a_filt2 = butter_bandpass(5,30,1000)
-b_filt3, a_filt3 = butter_highpass(100,1000)
+# # If you want to filter then filter	
+# b_filt, a_filt = butter_bandpass(30,100,1000)
+# b_filt1, a_filt1 = butter_lowpass(5,1000)
+# b_filt2, a_filt2 = butter_bandpass(5,30,1000)
+# b_filt3, a_filt3 = butter_highpass(100,1000)
 
-for i in np.arange(0,num_lines):
-	nz_seg = dataset[i,dataset[i,:]!=0]
-	nz_seg_filt = lfilter(b_filt,a_filt,nz_seg)
-	nz_seg_filt1 = lfilter(b_filt1,a_filt1,nz_seg)
-	nz_seg_filt2 = lfilter(b_filt2,a_filt2,nz_seg)
-	nz_seg_filt3 = lfilter(b_filt3,a_filt3,nz_seg)
+# for i in np.arange(0,num_lines):
+	# nz_seg = dataset[i,dataset[i,:]!=0]
+	# nz_seg_filt = lfilter(b_filt,a_filt,nz_seg)
+	# nz_seg_filt1 = lfilter(b_filt1,a_filt1,nz_seg)
+	# nz_seg_filt2 = lfilter(b_filt2,a_filt2,nz_seg)
+	# nz_seg_filt3 = lfilter(b_filt3,a_filt3,nz_seg)
 	
-	filt_dataset[0,i,dataset[i,:]!=0] = nz_seg_filt
-	filt_dataset[1,i,dataset[i,:]!=0] = nz_seg_filt1
-	filt_dataset[2,i,dataset[i,:]!=0] = nz_seg_filt2
-	filt_dataset[3,i,dataset[i,:]!=0] = nz_seg_filt3
+	# filt_dataset[0,i,dataset[i,:]!=0] = nz_seg_filt
+	# filt_dataset[1,i,dataset[i,:]!=0] = nz_seg_filt1
+	# filt_dataset[2,i,dataset[i,:]!=0] = nz_seg_filt2
+	# filt_dataset[3,i,dataset[i,:]!=0] = nz_seg_filt3
 
 ##########################################################
 # X = np.zeros((21684,5))
@@ -85,6 +85,13 @@ for i in np.arange(0,num_lines):
 
 #np.savetxt('ex_LFP_5chan.csv',X,delimiter=',')
 #pdb.set_trace()
+
+
+### LOAD THE DATA (Dec 2018)
+channel = 1
+dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+
+dataset = dataset.values[0:119000,channel-1:channel]*0.195  # convert to microvolts
 # ############ SERIES -> SUPERVISED #######################
 n_sims = 1
 
@@ -93,7 +100,7 @@ fivems_rmse = np.zeros((n_sims,n_sims))
 tenms_rmse = np.zeros((n_sims,n_sims))
 
 for k in np.arange(1,n_sims+1):
-	num_lookback = k*5 # Size of window
+	num_lookback = 100 # Size of window
 	#for m in np.arange(1,n_sims+1):
 	nnode = 400#m*2
 	print("nnode: ", nnode)
@@ -103,27 +110,22 @@ for k in np.arange(1,n_sims+1):
 	print("num_lookback:", num_lookback)
 	chunk_size = num_predict + num_lookback
 
-	if chunk_size*num_segs > dataset[dataset!=0].shape[0]:
-		print ('num_segs too large. only {} chunks possible'.format(int(dataset[dataset!=0].shape[0]/chunk_size)))
-			
-	else:
-		supervised_dataset = np.zeros((2,num_segs,num_lookback+num_predict))
 
-		t_start = time.time()
-		ds_row = 0 #Start at row zero of dataset and make chunks until it's exhausted
-		ind = 0
-		for i in np.arange(0,num_segs):
-			# if we have arrived at the end of the row, go to the next row
-			if (ind+1)*chunk_size > dataset[ds_row,dataset[ds_row,:]!=0].shape[0]:
-				ds_row = ds_row + 1
-				ind = 0
-			# save it to the supervised dataset
-			supervised_dataset[0,i,:] = dataset[ds_row,0+ind*chunk_size:(ind+1)*chunk_size]
-			supervised_dataset[1,i,:] = filt_dataset[0,ds_row,0+ind*chunk_size:(ind+1)*chunk_size]
-			ind = ind + 1
+	t_start = time.time()
+	ds_row = 0 #Start at row zero of dataset and make chunks until it's exhausted
+	ind = 0
+	for i in np.arange(0,num_segs):
+		# if we have arrived at the end of the row, go to the next row
+		if (ind+1)*chunk_size > dataset[ds_row,dataset[ds_row,:]!=0].shape[0]:
+			ds_row = ds_row + 1
+			ind = 0
+		# save it to the supervised dataset
+		supervised_dataset[0,i,:] = dataset[ds_row,0+ind*chunk_size:(ind+1)*chunk_size]
+		supervised_dataset[1,i,:] = filt_dataset[0,ds_row,0+ind*chunk_size:(ind+1)*chunk_size]
+		ind = ind + 1
 			
-		print("dataset took ", time.time() - t_start, "seconds to generate")
-		print(supervised_dataset.shape)
+	print("dataset took ", time.time() - t_start, "seconds to generate")
+	print(supervised_dataset.shape)
 	
 	###########################################################
 
@@ -234,64 +236,64 @@ for k in np.arange(1,n_sims+1):
 	
 		
 	############## PLOT SOME EXAMPLES #######################
-	examples = np.zeros((6,chunk_size))
-	ex_preds = np.zeros((6,num_predict))
-	plt.figure()
+	# examples = np.zeros((6,chunk_size))
+	# ex_preds = np.zeros((6,num_predict))
+	# plt.figure()
 	
-	for i in np.arange(1,7):
-		sample = np.random.randint(0,Y_test.shape[0])
-		ax = plt.subplot(2,3,i)
-		ax.set_xticklabels([])
-		ax.set_yticklabels([])
-		plt.plot(np.linspace(1,chunk_size,num=chunk_size),scl_sup_ds_raw[N_train+sample,0:chunk_size],color='#00FF00')
-		#plt.plot(np.linspace(1,chunk_size,num=chunk_size),supervised_dataset[1,N_train+sample,0:chunk_size],color='#00FF00')
-		plt.plot(np.linspace(num_lookback+1,chunk_size,num=num_predict),Y_test[sample,:],color='#FF0000')
-		plt.plot(np.linspace(num_lookback+1,chunk_size,num=num_predict),y_pred_test[sample,:],color='orange')
+	# for i in np.arange(1,7):
+		# sample = np.random.randint(0,Y_test.shape[0])
+		# ax = plt.subplot(2,3,i)
+		# ax.set_xticklabels([])
+		# ax.set_yticklabels([])
+		# plt.plot(np.linspace(1,chunk_size,num=chunk_size),scl_sup_ds_raw[N_train+sample,0:chunk_size],color='#00FF00')
+		# #plt.plot(np.linspace(1,chunk_size,num=chunk_size),supervised_dataset[1,N_train+sample,0:chunk_size],color='#00FF00')
+		# plt.plot(np.linspace(num_lookback+1,chunk_size,num=num_predict),Y_test[sample,:],color='#FF0000')
+		# plt.plot(np.linspace(num_lookback+1,chunk_size,num=num_predict),y_pred_test[sample,:],color='orange')
 		
-		examples[i-1,:] = supervised_dataset[0,N_train+sample,0:chunk_size]
-		ex_preds[i-1,:] = y_pred_test_us[sample,:]
+		# examples[i-1,:] = supervised_dataset[0,N_train+sample,0:chunk_size]
+		# ex_preds[i-1,:] = y_pred_test_us[sample,:]
 		
-	plt.tight_layout()
+	# plt.tight_layout()
 
 	
 
-fig2 = plt.figure()
-plt.subplot(2,1,1)
-plt.bar(np.arange(0,num_predict)-0.2,rmse_pers_test*0.1,0.3,label='persistence')
-plt.errorbar(np.arange(0,num_predict)-0.2,rmse_pers_test*0.1,yerr = rmse_pers_test_std*0.1)
-plt.bar(np.arange(0,num_predict)+0.2,rmse_ann_test*0.1,0.3,label='MLP')
-plt.ylabel('error in uV')
-plt.legend()
+# fig2 = plt.figure()
+# plt.subplot(2,1,1)
+# plt.bar(np.arange(0,num_predict)-0.2,rmse_pers_test*0.1,0.3,label='persistence')
+# plt.errorbar(np.arange(0,num_predict)-0.2,rmse_pers_test*0.1,yerr = rmse_pers_test_std*0.1)
+# plt.bar(np.arange(0,num_predict)+0.2,rmse_ann_test*0.1,0.3,label='MLP')
+# plt.ylabel('error in uV')
+# plt.legend()
 	
-plt.subplot(2,1,2)
-plt.bar(np.arange(1,num_predict+1),100*rmse_ann_test/rmse_pers_test)
-plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
-plt.xlim(0,11)
+# plt.subplot(2,1,2)
+# plt.bar(np.arange(1,num_predict+1),100*rmse_ann_test/rmse_pers_test)
+# plt.plot(np.arange(0,12),100*np.ones((12,)),'r--')
+# plt.xlim(0,11)
 #fig2.savefig('filt_rmse.png')
 
 
 # Analyze segments that performed well to find out why
-Y_error = np.sqrt(np.mean((y_pred_test_us-Y_test_us)**2,axis=1))
-low_err = np.where(Y_error<70)[0]
+# Y_error = np.sqrt(np.mean((y_pred_test_us-Y_test_us)**2,axis=1))
+# low_err = np.where(Y_error<70)[0]
 
 
-low_err_chunks = supervised_dataset[0,N_train+low_err,:]
-low_err_preds = y_pred_test_us[low_err,:]
+# low_err_chunks = supervised_dataset[0,N_train+low_err,:]
+# low_err_preds = y_pred_test_us[low_err,:]
 
-plt.figure()
+# plt.figure()
 
-#num_to_plot = low_err_chunks.shape[0]
-num_to_plot = 36
+# #num_to_plot = low_err_chunks.shape[0]
+# num_to_plot = 36
 
-for i in range(num_to_plot):
-	num_sp = np.ceil(np.sqrt(num_to_plot))
-	plt.subplot(num_sp,num_sp,i+1)
-	plt.plot(low_err_chunks[i,:])
-	plt.plot(np.arange(low_err_chunks.shape[1]-10,low_err_chunks.shape[1]),low_err_preds[i,:],'r')
+# for i in range(num_to_plot):
+	# num_sp = np.ceil(np.sqrt(num_to_plot))
+	# plt.subplot(num_sp,num_sp,i+1)
+	# plt.plot(low_err_chunks[i,:])
+	# plt.plot(np.arange(low_err_chunks.shape[1]-10,low_err_chunks.shape[1]),low_err_preds[i,:],'r')
 
 
 
-plt.show()
+#plt.show()
 
 #np.savetxt("onems_rmse.csv", onems_rmse, delimiter=",")
 #np.savetxt("fivems_rmse.csv", fivems_rmse, delimiter=",")

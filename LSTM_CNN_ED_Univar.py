@@ -177,7 +177,6 @@ for k in np.arange(num_sims):
 	train, test = split_dataset(dataset,n_out)
 
 
-
 	# make variables for scaled data
 	train_scl = np.zeros((train.shape[0],train.shape[1],train.shape[2]))
 	test_scl = np.zeros((test.shape[0],test.shape[1],test.shape[2]))

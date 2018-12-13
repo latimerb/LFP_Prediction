@@ -268,8 +268,8 @@ for k in np.arange(num_sims):
 	print("LSTM RMSE: ", rmse_lstm)
 	print("PERS RMSE: ",rmse_pers)
 
-np.savetxt('./modeloutputdata/LSTM_ED_Multivar/model/LSTM_ED_Multivar_Chan{}_RMSE.csv'.format(channel),rmse_lstm)
-np.savetxt('./modeloutputdata/LSTM_ED_Multivar/pers/LSTM_ED_Multivar_Chan{}_pers.csv'.format(channel),rmse_pers)
+np.savetxt('./modeloutputdata/LSTM_ED_Multivar/model/LSTM_ED_Multivar_Chan{}_RMSE.csv'.format(channel),rmse_lstm, delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_ED_Multivar/pers/LSTM_ED_Multivar_Chan{}_pers.csv'.format(channel),rmse_pers, delimiter=',')
 
 np.savetxt('./modeloutputdata/LSTM_ED_Multivar/model/LSTM_ED_Multivar_Chan{}_preds.csv'.format(channel),preds_us,delimiter=',')
 np.savetxt('./modeloutputdata/LSTM_ED_Multivar/model/LSTM_ED_Multivar_Chan{}_test.csv'.format(channel),test_us[:,:,0],delimiter=',')
