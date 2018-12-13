@@ -2,6 +2,7 @@ import pandas as pd
 import csv
 import pdb
 import numpy as np
+from numpy import split
 from pandas import read_csv
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -13,21 +14,25 @@ from sklearn.metrics import mean_squared_error
 from numpy.random import seed
 from tensorflow import set_random_seed
 from scipy.signal import butter, lfilter
-
+from numpy import array
 
 # split a univariate dataset into train/test sets
-def split_dataset(data, chunk_size):
+def split_dataset(data, n_out):
+	# split into standard weeks
+	n_segs = np.floor((len(data))/n_out)
+	n_train = np.floor(0.8 * n_segs)
+	n_train = int(np.floor(n_train/n_out)*n_out) # make sure it's a factor of n_out
 	
-	size = int(np.floor(len(data)/chunk_size)*chunk_size)
-	data = data[0:size]
-	sv = np.array(np.split(data,size/chunk_size))
-	n_train = int(np.floor(0.8*np.size(sv,0)))
+	print("n_segs: ", n_segs)
+	print("n_train: ", n_train)
 	
-	train, test = sv[0:n_train,:], sv[n_train:,:]
-
+	
+	train, test = data[0:-n_train], data[-n_train:]
+	
 	print("train.shape: ", train.shape)
-	print("test.shape: ", test.shape)
-	
+	# restructure into windows of weekly data
+	train = array(split(train, len(train)/n_out))
+	test = array(split(test, len(test)/n_out))
 	return train, test
 
 def baseline_model(lookback,pred):
@@ -47,7 +52,7 @@ def baseline_model(lookback,pred):
 
 print('ANN')
 
-channel = 1
+channel = 31
 num_sims = 10
 rmse_ann = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
@@ -70,9 +75,23 @@ for k in np.arange(num_sims):
 
 
 	# split into train and test
-	train, test = split_dataset(dataset,n_input+n_out)
+	train, test = split_dataset(dataset,n_out)
+	
+	alltt = np.concatenate((train[:,:,0],test[:,:,0]),0)
 
+	train_ANN = np.zeros((np.size(train,0),n_input+n_out))
+	test_ANN = np.zeros((np.size(test,0),n_input+n_out))
+	
+	for i in np.arange(np.size(train,0)):
+		train_ANN[i,:] = alltt[i:i+n_out+1,:].ravel()
 
+	for i in np.arange(np.size(test,0)):
+		test_ANN[i,:] = alltt[np.size(train_ANN,0)-n_out+i:np.size(train_ANN,0)+i+1,:].ravel()
+	
+
+	train,test = train_ANN[:,:,np.newaxis], test_ANN[:,:,np.newaxis]
+	
+	
 	# make variables for scaled data
 	train_scl = np.zeros((train.shape[0],train.shape[1]))
 	test_scl = np.zeros((test.shape[0],test.shape[1]))
@@ -137,4 +156,5 @@ np.savetxt('./modeloutputdata/ANN/model/ANN_Chan_{}_RMSE.csv'.format(channel),rm
 np.savetxt('./modeloutputdata/ANN/pers/ANN_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
 
 np.savetxt('./modeloutputdata/ANN/model/ANN_Chan_{}_preds.csv'.format(channel),preds_us,delimiter=',')
-np.savetxt('./modeloutputdata/ANN/model/ANN_Chan_{}_test.csv'.format(channel),test_us[:,:,0],delimiter=',')
+np.savetxt('./modeloutputdata/ANN/model/ANN_Chan_{}_test.csv'.format(channel),test_us[:,-n_out:,0],delimiter=',')
+np.savetxt('./modeloutputdata/ANN/pers/ANN_Chan_{}_preds.csv'.format(channel),y_pers_test[:,:],delimiter=',')

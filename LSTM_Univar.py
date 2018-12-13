@@ -148,7 +148,7 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM Univar')
 
-channel = 12
+channel = 31
 num_sims = 5
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
@@ -275,6 +275,9 @@ for k in np.arange(num_sims):
 
 np.savetxt('./modeloutputdata/LSTM_Univar/model/LSTM_Univar_Channel_{}.csv'.format(channel),rmse_lstm,delimiter=',')
 np.savetxt('./modeloutputdata/LSTM_Univar/pers/LSTM_Univar_Channel_{}.csv'.format(channel),rmse_pers,delimiter=',')
+
+np.savetxt('./modeloutputdata/LSTM_Univar/model/LSTM_Univar_Chan{}_preds.csv'.format(channel),preds_us,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_Univar/model/LSTM_Univar_Chan{}_test.csv'.format(channel),test_us[:,:,0],delimiter=',')
 # # summarize scores
 # summarize_scores('lstm', score, scores)
 
