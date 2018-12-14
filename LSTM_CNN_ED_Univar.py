@@ -151,15 +151,15 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM+CNN Encoder-Decoder')
 
-channel = 31
-num_sims = 5
+channel = 1
+num_sims = 3
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
 
 	#set_random_seed(27365+k)
 	print("simulation {} of {}".format(k+1,num_sims))
 	
-	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_3000to3120.csv')
 	# length of dataset must be divisible by n_out
 	dataset = dataset.values[0:119000,channel-1:channel]*0.195  # convert to microvolts
 
@@ -276,8 +276,8 @@ for k in np.arange(num_sims):
 
 # plt.savefig('LSTM_CNN_ED_univar_RMSE.png')
 
-np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_RMSE.csv'.format(channel),rmse_lstm,delimiter=',')
-np.savetxt('./modeloutputdata/LSTM_CNN/pers/LSTM_CNN_Univar_Chan_{}_PERS.csv'.format(channel),rmse_pers,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_RMSE3000to3120.csv'.format(channel),rmse_lstm,delimiter=',')
+np.savetxt('./modeloutputdata/LSTM_CNN/pers/LSTM_CNN_Univar_Chan_{}_PERS3000to3120.csv'.format(channel),rmse_pers,delimiter=',')
 
 np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_preds.csv'.format(channel),preds_us,delimiter=',')
 np.savetxt('./modeloutputdata/LSTM_CNN/model/LSTM_CNN_Univar_Chan_{}_test.csv'.format(channel),test_us[:,:,0],delimiter=',')

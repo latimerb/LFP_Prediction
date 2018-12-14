@@ -149,20 +149,20 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM Encoder-Decoder Multivariate')
 
-channel = 4
-num_sims = 5
+channel = 1
+num_sims = 3
 rmse_lstm = np.zeros((10,num_sims))
 
 for k in np.arange(num_sims):
 
 	print("simulation {} of {}".format(k+1,num_sims))
 	
-	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_3000to3120.csv')
 	dataset = dataset.values[0:119000,0:11]*0.195  # convert to microvolts # length of dataset must be divisible by n_out
 
 	print("dataset size before delete:", dataset.shape)
 
-	dataset = np.delete(dataset,[0,1,2,4,5,6,7,8,9],axis=1)
+	dataset = np.delete(dataset,[1,2,3,4,5,6,7,8,9],axis=1)
 	#dataset = dataset[:,[-1,0]] # Put the last column as the first
 	
 	

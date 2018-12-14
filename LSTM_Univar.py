@@ -148,15 +148,15 @@ def evaluate_model(train, test, n_input, n_out):
 #dataset = dataset.values
 print('LSTM Univar')
 
-channel = 31
-num_sims = 5
+channel = 1
+num_sims = 3
 rmse_lstm = np.zeros((10,num_sims))
 for k in np.arange(num_sims):
 
 	#set_random_seed(27365+k)
 	print("simulation {} of {}".format(k+1,num_sims))
 	
-	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_1000to1120.csv')
+	dataset = read_csv('../LFP_Prediction_WITHDATA/data/sample_LFP_3000to3120.csv')
 	# length of dataset must be divisible by n_out
 	dataset = dataset.values[0:119000,channel-1:channel]*0.195  # convert to microvolts
 

@@ -18,7 +18,7 @@ module load cudnn/cudnn-7.1.4-cuda-9.0.176
 
 module list
 
-python LSTM_ED_Multivar.py
+python LSTM_Univar.py
 
 echo "Done at: $(date)"
 
