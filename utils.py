@@ -51,8 +51,8 @@ def fit_lstm(train, n_lag, n_batch, nb_epoch, n_neurons):
     model.add(Dense(n_outputs))
     model.compile(loss='mse', optimizer='adam')
     # fit network
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=verbose)
-    return model
+    hist = model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=verbose, validation_split=0.2)
+    return model, hist
 
 def forecast_lstm(model, X, n_batch):
     # reshape input pattern to [samples, timesteps, features]
